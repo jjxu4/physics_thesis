@@ -38,7 +38,8 @@ class current_loop:
             R and Z expected to be meshgrids created by np.meshgrid(R, Z).
             Returns grid in same shape as R and Z with values of E_phi filled in
             '''
-            return -1 * dIdt(t) * self.a_phi(R, Z)
+
+            return -1 * dIdt(t)[:, None, None] * self.a_phi(R, Z)
 
         self.Efield_phi = E_field_phi
 
@@ -47,7 +48,7 @@ class current_loop:
             R and Z expected to be meshgrids created by np.meshgrid(R, Z).
             Returns grid in same shape as R and Z with values of Bfield_R filled in
             '''
-            return current(t) * self.b_r(R, Z)
+            return current(t)[:, None, None] * self.b_r(R, Z)
 
         self.Bfield_R = B_field_R
 
@@ -56,7 +57,7 @@ class current_loop:
             R and Z expected to be meshgrids created by np.meshgrid(R, Z).
             Returns grid in same shape as R and Z with values of Bfield_Z filled in
             '''
-            return current(t) * self.b_z(R, Z)
+            return current(t)[:, None, None] * self.b_z(R, Z)
 
         self.Bfield_Z = B_field_Z
 
@@ -71,8 +72,8 @@ class current_loop:
             D = (self.radius + R)**2 + Z**2
             m = (4 * self.radius * R)/D
 
-            near_wire = (R - self.radius)**2 + (Z - self.z_pos)**2 < self.wire_radius
-            near_axis = np.abs(R) < 1e-3
+            near_wire = (R - self.radius)**2 + (Z)**2 < self.wire_radius**2
+            near_axis = np.abs(R) <= (self.radius * 0.01) & ~near_wire
             mask = near_axis | near_wire
 
             a_phi_val = np.full_like(R, np.nan, dtype=float)
@@ -98,7 +99,7 @@ class current_loop:
             m = (4 * self.radius * R)/D
             q = (self.radius - R)**2 + Z**2
 
-            near_wire = (R - self.radius)**2 + (Z - self.z_pos)**2 < self.wire_radius
+            near_wire = (R - self.radius)**2 + (Z)**2 < self.wire_radius**2
             near_axis = np.abs(R) < 1e-3
             mask = near_axis | near_wire
 
@@ -115,7 +116,7 @@ class current_loop:
         self.b_r = b_r_shifted
 
 
-    def _create_b_z(self, R, Z):
+    def _create_b_z(self):
 
         def b_z(R, Z):
             '''
@@ -126,7 +127,7 @@ class current_loop:
             m = (4 * self.radius * R)/D
             q = (self.radius - R)**2 + Z**2
 
-            near_wire = (R - self.radius)**2 + (Z - self.z_pos)**2 < self.wire_radius
+            near_wire = (R - self.radius)**2 + (Z)**2 < self.wire_radius**2
 
             b_z_val = np.full_like(R, np.nan, dtype=float)
 

@@ -1,14 +1,15 @@
 import numpy as np
+import matplotlib.animation as animation
+import matplotlib.pyplot as plt
 
 class loop_system:
 
-    def __init__(self, loops, background_Bfield_z):
+    def __init__(self, loops):
         '''
         loops:                  list of current_loop objects
         background_Bfield_z:    float for strength [T] of background field
         '''
         self.loops = loops
-        self.background_Bfield_z = background_Bfield_z
 
     def total_Efield_phi(self, t, R, Z):
         '''
@@ -16,12 +17,10 @@ class loop_system:
         where array[t] gives a grid that is the same size as R and Z with Efield_phi filled out.
         '''
 
-        Efield_phi_vals = np.full((len(t), R.shape[0], R.shape[1]), 0)
-
-        for time in t:
-            # sum over Efield_phi from each loop
-            for loop in self.loops:
-                Efield_phi_vals[time] += loop.Efield_phi(R, Z)
+        Efield_phi_vals = np.full((len(t), R.shape[0], R.shape[1]), 0.0)
+        
+        for loop in self.loops:
+            Efield_phi_vals += loop.Efield_phi(R, Z, t)
 
         return Efield_phi_vals
 
@@ -30,12 +29,10 @@ class loop_system:
         Calculates B_R(t, R, Z). t is an array of times, R and Z come from np.meshgrid. Returns an array
         where array[t] gives a grid that is the same size as R and Z with Bfield_R filled out.
         '''
-        Bfield_R_vals = np.full((len(t), R.shape[0], R.shape[1]), 0)
+        Bfield_R_vals = np.full((len(t), R.shape[0], R.shape[1]), 0.0)
 
-        for time in t:
-            # sum over Bfield_R from each loop
-            for loop in self.loops:
-                Bfield_R_vals[time] += loop.Bfield_R(R, Z)
+        for loop in self.loops:
+            Bfield_R_vals += loop.Bfield_R(R, Z, t)
 
         return Bfield_R_vals
     
@@ -44,15 +41,60 @@ class loop_system:
         Calculates B_Z(t, R, Z). t is an array of times, R and Z come from np.meshgrid. Returns an array
         where array[t] gives a grid that is the same size as R and Z with Bfield_Z filled out.
         '''
-        Bfield_Z_vals = np.full((len(t), R.shape[0], R.shape[1]), 0)
+        Bfield_Z_vals = np.full((len(t), R.shape[0], R.shape[1]), 0.0)
 
-        for time in t:
-            # sum over Bfield_R from each loop
-            for loop in self.loops:
-                Bfield_Z_vals[time] += loop.Bfield_Z(R, Z)
+        for loop in self.loops:
+            Bfield_Z_vals += loop.Bfield_Z(R, Z, t)
 
         return Bfield_Z_vals
 
-
     # ===================== ANIMATIONS =====================
-    def animate_loop_voltage(self):
+    def animate_loop_voltage(self, radius, t_start, t_stop, frames, fps, min_z, max_z, z_res, r_max, r_res):
+        '''
+        animates v_loop_r(z, t) = E_phi(r, z , t) * 2pi * r. 
+        '''
+
+        Z = np.linspace(min_z, max_z, z_res)
+        R = np.linspace(0, r_max, r_res)
+        times = np.linspace(t_start, t_stop, frames)
+        rad_indx = np.argmin(np.abs(R - radius))
+
+        R_grid, Z_grid = np.meshgrid(R, Z)
+
+        Efield_vals = self.total_Efield_phi(times, R_grid, Z_grid)
+        voltages = Efield_vals[:, :, rad_indx] * 2 * np.pi * R[rad_indx]
+
+        # Animation stuff
+        fig, ax = plt.subplots(figsize=(8, 5))
+
+        (line, ) = ax.plot(Z, voltages[0])
+        ax.set_xlim(np.min(Z), np.max(Z))
+        ax.set_ylim(np.nanmin(voltages), np.nanmax(voltages))
+
+        ax.set_xlabel("Z [m]")
+        ax.set_ylabel("Volts")
+        title = ax.set_title('Voltage vs Z at t = 0.0')
+
+        def update(frame_index):
+            line.set_ydata(voltages[frame_index])
+            title.set_text(f"Voltage vs Z at t = {times[frame_index]}")
+
+            return line, title
+
+        ani = animation.FuncAnimation(
+            fig,
+            update,
+            frames=frames,  # Number of frames equals the number of time steps
+            interval= 1000 / fps,  # Delay between frames in milliseconds (lower = faster)
+            blit=True,  # Optimization for smooth rendering
+        )  
+
+        plt.close(fig)
+
+        return ani
+
+
+
+
+
+
