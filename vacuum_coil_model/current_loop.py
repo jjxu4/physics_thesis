@@ -73,7 +73,7 @@ class current_loop:
             m = (4 * self.radius * R)/D
 
             near_wire = (R - self.radius)**2 + (Z)**2 < self.wire_radius**2
-            near_axis = np.abs(R) <= (self.radius * 0.01) & ~near_wire
+            near_axis = (np.abs(R) <= self.radius * 0.01) & ~near_wire
             mask = near_axis | near_wire
 
             a_phi_val = np.full_like(R, np.nan, dtype=float)
