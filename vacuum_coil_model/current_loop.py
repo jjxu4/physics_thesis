@@ -25,13 +25,18 @@ class current_loop:
         self._create_b_r()
         self._create_b_z()
 
+        self.current        = None
+        self.dIdt           = None
 
         self.Bfield_R       = None
         self.Bfield_Z       = None
         self.Efield_phi     = None
-        self._create_fields(current, dIdt)
+        self.update_fields(current, dIdt)
 
-    def _create_fields(self, current, dIdt):
+    def update_fields(self, current, dIdt):
+        
+        self.current        = current
+        self.dIdt           = dIdt
 
         def E_field_phi(R, Z, t):
             '''
@@ -114,7 +119,6 @@ class current_loop:
             return b_r(R, Z - self.z_pos)
 
         self.b_r = b_r_shifted
-
 
     def _create_b_z(self):
 

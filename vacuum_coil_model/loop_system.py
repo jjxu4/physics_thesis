@@ -1,8 +1,12 @@
 import numpy as np
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
+from scipy.constants import mu_0
 
 class loop_system:
+    '''
+    Each loop in loops needs to have a unique name, otherwise there could be some issues...
+    '''
 
     def __init__(self, loops):
         '''
@@ -48,6 +52,35 @@ class loop_system:
 
         return Bfield_Z_vals
 
+    def calc_inductance_mtrx(self):
+        '''
+        Calculates the mutual inductance matrix, [M] where M_ij = flux through I per current in J
+        '''
+        num_loops = len(self.loops)
+        induct_mtrx = np.full((num_loops, num_loops), np.nan)
+
+        for i in range(num_loops):
+            for j in  range(num_loops):
+                induct_mtrx[i][j] = self.calc_mutual_induc(self.loops[i], self.loops[j])
+
+        return induct_mtrx
+
+    def calc_mutual_induc(self, first_loop, second_loop):
+        '''
+        Calculates flux through first_loop per current in second_loop
+        '''
+        l1_zpos = first_loop.z_pos
+        l1_rad  = first_loop.radius
+        l2_zpos = second_loop.z_pos
+        l2_rad  = second_loop.radius
+
+        if (l1_zpos == l2_zpos) and (l1_rad == l2_rad):
+            return mu_0 * l1_rad * (np.log(8 * (l1_rad/first_loop.wire_radius)) - 2)
+
+        R, Z = np.meshgrid(l1_rad, l1_zpos)
+
+        return second_loop.a_phi(R, Z)[0][0] * 2 * np.pi * l1_rad
+
     # ===================== ANIMATIONS =====================
     def animate_loop_voltage(self, radius, t_start, t_stop, frames, fps, min_z, max_z, z_res, r_max, r_res):
         '''
@@ -77,7 +110,7 @@ class loop_system:
 
         def update(frame_index):
             line.set_ydata(voltages[frame_index])
-            title.set_text(f"Voltage vs Z at t = {times[frame_index]}")
+            title.set_text(f"Voltage vs Z at t = {times[frame_index]} (at R = {R[rad_indx]})")
 
             return line, title
 
